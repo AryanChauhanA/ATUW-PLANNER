@@ -31,4 +31,5 @@ A modern, AI-augmented daily planner featuring context-aware task scheduling, a 
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/AryanChauhanA/ATUW-PLANNER
+```bash
+   git clone [https://github.com/AryanChauhanA/ATUW-PLANNER.git](https://github.com/AryanChauhanA/ATUW-PLANNER.git)
