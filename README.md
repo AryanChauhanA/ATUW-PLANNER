@@ -1,16 +1,34 @@
-# React + Vite
+# ATUW Planner
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, AI-augmented daily planner featuring context-aware task scheduling, a 24-hour time grid, and GitHub-style progress tracking. Built with a focus on modern UI/UX utilizing a "Liquid Glass" (glassmorphism) aesthetic.
 
-Currently, two official plugins are available:
+## ✨ Core Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+*   **Smart Task Management:** Natural-language priority assignment with contextual filtering.
+*   **24-Hour Schedule Grid:** Visual time-blocking tailored for university schedules (Classes, Labs, Self-Study).
+*   **Context-Aware AI Assistant:** Integrated Google Gemini AI that reads your current schedule and tasks to provide personalized planning advice.
+*   **Contribution Heatmap:** GitHub-style progress tracker visualizing daily completed tasks and historical streaks.
+*   **Neural Notes (Ideas):** Hierarchical brainstorming system for organizing project ideas and study notes.
+*   **Modern Glassmorphism UI:** iOS-inspired frosted glass aesthetic with responsive design.
 
-## React Compiler
+## 🛠️ Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+*   **Frontend:** React (Vite), Tailwind CSS, Framer Motion (for animations)
+*   **Backend & Auth:** Firebase Auth, Cloud Firestore (NoSQL Document DB)
+*   **AI Integration:** Google Gemini 1.5 API (via Serverless Functions)
+*   **State Management:** Zustand
+*   **Hosting:** Netlify / GitHub Pages
 
-## Expanding the ESLint configuration
+## 🚀 Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Prerequisites
+*   Node.js (v18 or higher)
+*   npm or yarn
+*   A Firebase Project
+*   Google AI Studio API Key
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/AryanChauhanA/ATUW-PLANNER
