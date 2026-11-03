@@ -50,6 +50,12 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, selectedS
     return h > 12 ? `${h - 12} PM` : `${h} AM`
   }
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSave()
+    }
+  }
+
   const handleSave = () => {
     if (!title.trim()) {
       setError("Task name is required.")
@@ -109,6 +115,7 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, selectedS
         <input 
           type="text" 
           value={title}
+          onKeyDown={handleKeyDown}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Task Name" 
           className="w-full bg-background border border-border rounded-xl px-4 py-3 mb-4 text-primary focus:outline-none focus:border-brand/50 focus:ring-1 focus:ring-brand/50 transition-all placeholder:text-muted/50"

@@ -2,19 +2,25 @@ import { useState, useEffect } from 'react'
 import { Sparkles, History, BarChart3 } from 'lucide-react'
 import Grid from '../components/schedule/Grid'
 import TaskModal from '../components/schedule/TaskModal'
+import HistoryModal from '../components/schedule/HistoryModal' 
+import InsightsModal from '../components/schedule/InsightsModal'
 
 export default function Schedule() {
-  // 1. Load tasks from Local Storage on initial load
+
+    const [isInsightsOpen, setIsInsightsOpen] = useState(false)
+
   const [tasks, setTasks] = useState(() => {
     const savedTasks = localStorage.getItem('atuw_tasks')
     return savedTasks ? JSON.parse(savedTasks) : []
   })
   
+  // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false) 
+  
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [editingTask, setEditingTask] = useState(null)
 
-  // 2. Automatically save to Local Storage whenever tasks change
   useEffect(() => {
     localStorage.setItem('atuw_tasks', JSON.stringify(tasks))
   }, [tasks])
@@ -33,11 +39,7 @@ export default function Schedule() {
 
   const handleSaveTask = (taskData) => {
     if (editingTask) {
-      setTasks(tasks.map(t => 
-        t.id === editingTask.id 
-          ? { ...t, ...taskData } 
-          : t
-      ))
+      setTasks(tasks.map(t => t.id === editingTask.id ? { ...t, ...taskData } : t))
     } else {
       const newTask = {
         id: Math.random().toString(36).substr(2, 9),
@@ -57,10 +59,14 @@ export default function Schedule() {
     setEditingTask(null)
   }
 
+  // Load a snapshot from the History Modal
+  const handleLoadSnapshot = (snapshotTasks) => {
+    setTasks(snapshotTasks)
+  }
+
   return (
     <div className="max-w-7xl mx-auto flex flex-col h-full pb-8">
       
-      {/* Header & Controls */}
       <div className="mb-6 flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-extrabold text-primary tracking-tight">Weekly Plan</h1>
@@ -73,11 +79,21 @@ export default function Schedule() {
             <Sparkles size={16} />
             <span>AI Copilot</span>
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-surface hover:bg-surface-hover text-muted hover:text-primary text-sm font-bold rounded-xl border border-border transition-all">
+          
+          {/* Wire up the History Button */}
+          <button 
+            onClick={() => setIsHistoryOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-surface hover:bg-surface-hover text-muted hover:text-primary text-sm font-bold rounded-xl border border-border transition-all"
+          >
             <History size={16} />
             <span>History</span>
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-surface hover:bg-surface-hover text-muted hover:text-primary text-sm font-bold rounded-xl border border-border transition-all">
+          
+         {/*INSIGHTS BUTTON */}
+          <button 
+            onClick={() => setIsInsightsOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-surface hover:bg-surface-hover text-muted hover:text-primary text-sm font-bold rounded-xl border border-border transition-all"
+          >
             <BarChart3 size={16} />
             <span>Insights</span>
           </button>
@@ -100,6 +116,21 @@ export default function Schedule() {
         onDelete={handleDeleteTask}
         selectedSlot={selectedSlot}
         editingTask={editingTask}
+        tasks={tasks}
+      />
+
+      {/* Render History Modal */}
+      <HistoryModal 
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        currentTasks={tasks}
+        onLoadSnapshot={handleLoadSnapshot}
+      />
+
+      {/* Render Insights Modal */}
+      <InsightsModal 
+        isOpen={isInsightsOpen}
+        onClose={() => setIsInsightsOpen(false)}
         tasks={tasks}
       />
 
