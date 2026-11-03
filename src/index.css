@@ -1,1 +1,39 @@
 @import "tailwindcss";
+
+@theme {
+  --color-background: var(--bg-main);
+  --color-surface: var(--bg-surface);
+  --color-surface-hover: var(--bg-surface-hover);
+  --color-border: var(--border-color);
+  --color-primary: var(--text-main);
+  --color-muted: var(--text-muted);
+  --color-brand: var(--brand-primary);
+  --color-brand-hover: var(--brand-hover);
+  --color-glass: var(--glass-bg);
+}
+
+:root {
+  /* --- LIGHT MODE --- */
+  --bg-main: #f8fafc; 
+  --bg-surface: rgba(255, 255, 255, 0.7);
+  --bg-surface-hover: rgba(255, 255, 255, 0.9);
+  --border-color: rgba(15, 23, 42, 0.1);
+  --text-main: #0f172a; /* Deep Navy */
+  --text-muted: #64748b; 
+  --brand-primary: #0ea5e9; /* Sky Blue (Anchor) */
+  --brand-hover: #0284c7; 
+  --glass-bg: rgba(255, 255, 255, 0.6);
+}
+
+.dark {
+  /* --- DARK MODE --- */
+  --bg-main: #020617; 
+  --bg-surface: rgba(2, 6, 23, 0.4);
+  --bg-surface-hover: rgba(30, 41, 59, 0.6);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --text-main: #f8fafc; /* Crisp White */
+  --text-muted: #94a3b8;
+  --brand-primary: #0ea5e9; /* Sky Blue (Anchor) */
+  --brand-hover: #38bdf8;
+  --glass-bg: rgba(2, 6, 23, 0.4);
+}
