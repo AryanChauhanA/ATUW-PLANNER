@@ -1,41 +1,44 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Sparkles, History, BarChart3 } from 'lucide-react'
 import Grid from '../components/schedule/Grid'
 import TaskModal from '../components/schedule/TaskModal'
 
 export default function Schedule() {
-  const [tasks, setTasks] = useState([])
+  // 1. Load tasks from Local Storage on initial load
+  const [tasks, setTasks] = useState(() => {
+    const savedTasks = localStorage.getItem('atuw_tasks')
+    return savedTasks ? JSON.parse(savedTasks) : []
+  })
+  
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState(null)
-  
-  // New state to track if we are editing an existing block
   const [editingTask, setEditingTask] = useState(null)
 
-  // Click empty slot -> Create New
+  // 2. Automatically save to Local Storage whenever tasks change
+  useEffect(() => {
+    localStorage.setItem('atuw_tasks', JSON.stringify(tasks))
+  }, [tasks])
+
   const handleSlotClick = (day, hour) => {
     setEditingTask(null)
     setSelectedSlot({ day, hour })
     setIsModalOpen(true)
   }
 
-  // Click existing block -> Edit
   const handleTaskClick = (task) => {
     setEditingTask(task)
     setSelectedSlot({ day: task.day, hour: task.hour })
     setIsModalOpen(true)
   }
 
-  // Save (Handles both Create and Update)
   const handleSaveTask = (taskData) => {
     if (editingTask) {
-      // Update existing task in the array
       setTasks(tasks.map(t => 
         t.id === editingTask.id 
           ? { ...t, ...taskData } 
           : t
       ))
     } else {
-      // Create brand new task
       const newTask = {
         id: Math.random().toString(36).substr(2, 9),
         day: selectedSlot.day,
@@ -48,7 +51,6 @@ export default function Schedule() {
     setEditingTask(null)
   }
 
-  // Delete logic
   const handleDeleteTask = (taskId) => {
     setTasks(tasks.filter(t => t.id !== taskId))
     setIsModalOpen(false)
@@ -82,14 +84,12 @@ export default function Schedule() {
         </div>
       </div>
 
-      {/* The Visual Canvas */}
       <Grid 
         tasks={tasks} 
         onSlotClick={handleSlotClick} 
         onTaskClick={handleTaskClick} 
       />
 
-      {/* The Input Modal */}
       <TaskModal 
         isOpen={isModalOpen} 
         onClose={() => {
