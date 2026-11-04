@@ -12,10 +12,17 @@ export default function Notes() {
 
   const [activeHubId, setActiveHubId] = useState(null)
   const [activeBranchId, setActiveBranchId] = useState(null)
+  const [maximizedNode, setMaximizedNode] = useState(null) // 'hub' | 'branch' | null
 
   useEffect(() => {
     localStorage.setItem('atuw_neural_notes', JSON.stringify(notes))
   }, [notes])
+
+  // Reset maximize state if the active node is closed
+  useEffect(() => {
+    if (!activeHubId && maximizedNode === 'hub') setMaximizedNode(null)
+    if (!activeBranchId && maximizedNode === 'branch') setMaximizedNode(null)
+  }, [activeHubId, activeBranchId, maximizedNode])
 
   const rootHubs = notes.filter(n => !n.parentId)
   const activeHub = notes.find(n => n.id === activeHubId)
@@ -31,8 +38,10 @@ export default function Notes() {
       updatedAt: Date.now()
     }
     setNotes([newNote, ...notes])
-    if (parentId) setActiveBranchId(newNote.id)
-    else {
+    if (parentId) {
+      setActiveBranchId(newNote.id)
+      if (maximizedNode === 'hub') setMaximizedNode(null) // Un-maximize hub if branching
+    } else {
       setActiveHubId(newNote.id)
       setActiveBranchId(null)
     }
@@ -63,16 +72,15 @@ export default function Notes() {
 
       <div className="flex flex-1 gap-4 overflow-hidden h-[calc(100vh-12rem)] md:h-[calc(100vh-8rem)]">
         
-        {/* COLUMN 1: Nexus List */}
         <NexusList 
           hubs={rootHubs}
           activeHubId={activeHubId}
           setActiveHubId={setActiveHubId}
           setActiveBranchId={setActiveBranchId}
           createNote={createNote}
+          isHidden={maximizedNode !== null} 
         />
 
-        {/* COLUMN 2: Hub Editor */}
         {activeHub && (
           <HubEditor 
             hub={activeHub}
@@ -84,17 +92,23 @@ export default function Notes() {
             updateNote={updateNote}
             createNote={createNote}
             deleteNote={deleteNote}
+            isHidden={maximizedNode === 'branch'}
+            isMaximized={maximizedNode === 'hub'}
+            toggleMaximize={() => setMaximizedNode(maximizedNode === 'hub' ? null : 'hub')}
           />
         )}
 
-        {/* COLUMN 3: Branch Editor */}
         {activeBranch && (
           <BranchEditor 
             branch={activeBranch}
             parentHub={activeHub}
+            branches={hubBranches}
             setActiveBranchId={setActiveBranchId}
             updateNote={updateNote}
             deleteNote={deleteNote}
+            isHidden={maximizedNode === 'hub'}
+            isMaximized={maximizedNode === 'branch'}
+            toggleMaximize={() => setMaximizedNode(maximizedNode === 'branch' ? null : 'branch')}
           />
         )}
       </div>

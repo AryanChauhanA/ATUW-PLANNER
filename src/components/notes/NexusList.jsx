@@ -1,9 +1,9 @@
 import { Plus, Network } from 'lucide-react'
 
-export default function NexusList({ hubs, activeHubId, setActiveHubId, setActiveBranchId, createNote }) {
+export default function NexusList({ hubs, activeHubId, setActiveHubId, setActiveBranchId, createNote, isHidden }) {
   
   const containerClasses = `flex flex-col h-full w-full md:w-72 bg-surface/50 backdrop-blur-xl border border-border rounded-2xl p-4 transition-all ${
-    activeHubId ? 'hidden md:flex' : 'flex'
+    isHidden ? 'hidden' : (activeHubId ? 'hidden md:flex' : 'flex')
   }`
 
   return (
