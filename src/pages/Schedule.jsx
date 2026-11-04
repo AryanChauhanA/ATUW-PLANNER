@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, History, BarChart3 } from 'lucide-react'
 import Grid from '../components/schedule/Grid'
 import TaskModal from '../components/schedule/TaskModal'
 import HistoryModal from '../components/schedule/HistoryModal' 
 import InsightsModal from '../components/schedule/InsightsModal'
+import { Sparkles, History, BarChart3, Shrink } from 'lucide-react'
 
 export default function Schedule() {
 
     const [isInsightsOpen, setIsInsightsOpen] = useState(false)
+    const [isFullView, setIsFullView] = useState(false)
 
   const [tasks, setTasks] = useState(() => {
     const savedTasks = localStorage.getItem('atuw_tasks')
@@ -67,35 +68,45 @@ export default function Schedule() {
   return (
     <div className="max-w-7xl mx-auto flex flex-col h-full pb-8">
       
-      <div className="mb-6 flex justify-between items-end">
+      {/* Responsive Header & Controls */}
+      <div className="mb-4 flex flex-row justify-between items-center gap-2">
         <div>
-          <h1 className="text-3xl font-extrabold text-primary tracking-tight">Weekly Plan</h1>
-          <p className="text-muted text-sm font-medium mt-1 uppercase tracking-widest">
+          <h1 className="text-xl md:text-3xl font-extrabold text-primary tracking-tight">Weekly Plan</h1>
+          {/* Subtitle hides on mobile, shows on PC */}
+          <p className="hidden md:block text-muted text-sm font-medium mt-1 uppercase tracking-widest">
             24x7 Schedule Canvas
           </p>
         </div>
-        <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-brand/10 text-brand text-sm font-bold rounded-xl border border-brand/20 hover:bg-brand/20 transition-all shadow-[0_0_10px_rgba(14,165,233,0.1)]">
-            <Sparkles size={16} />
-            <span>AI Copilot</span>
+        
+        {/* Action Buttons: Text hides on mobile, icons stay centered */}
+        <div className="flex gap-2">
+          <button className="flex items-center justify-center p-2.5 md:px-4 md:py-2 bg-brand/10 text-brand md:text-sm font-bold rounded-xl border border-brand/20 hover:bg-brand/20 transition-all shadow-sm">
+            <Sparkles size={18} />
+            <span className="hidden md:inline ml-2">AI Copilot</span>
           </button>
           
-          {/* Wire up the History Button */}
           <button 
             onClick={() => setIsHistoryOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-surface hover:bg-surface-hover text-muted hover:text-primary text-sm font-bold rounded-xl border border-border transition-all"
+            className="flex items-center justify-center p-2.5 md:px-4 md:py-2 bg-surface hover:bg-surface-hover text-muted hover:text-primary md:text-sm font-bold rounded-xl border border-border transition-all"
           >
-            <History size={16} />
-            <span>History</span>
+            <History size={18} />
+            <span className="hidden md:inline ml-2">History</span>
           </button>
           
-         {/*INSIGHTS BUTTON */}
           <button 
             onClick={() => setIsInsightsOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-surface hover:bg-surface-hover text-muted hover:text-primary text-sm font-bold rounded-xl border border-border transition-all"
+            className="flex items-center justify-center p-2.5 md:px-4 md:py-2 bg-surface hover:bg-surface-hover text-muted hover:text-primary md:text-sm font-bold rounded-xl border border-border transition-all"
           >
-            <BarChart3 size={16} />
-            <span>Insights</span>
+            <BarChart3 size={18} />
+            <span className="hidden md:inline ml-2">Insights</span>
+          </button>
+
+          {/* Squeeze/Full View Button: Hidden on Desktop (md:hidden) */}
+          <button 
+            onClick={() => setIsFullView(!isFullView)}
+            className={`md:hidden flex items-center justify-center p-2.5 hover:bg-surface-hover font-bold rounded-xl border transition-all ${isFullView ? 'bg-brand/10 text-brand border-brand/30' : 'bg-surface text-muted hover:text-primary border-border'}`}
+          >
+            <Shrink size={18} />
           </button>
         </div>
       </div>
@@ -103,7 +114,8 @@ export default function Schedule() {
       <Grid 
         tasks={tasks} 
         onSlotClick={handleSlotClick} 
-        onTaskClick={handleTaskClick} 
+        onTaskClick={handleTaskClick}
+        isFullView={isFullView}
       />
 
       <TaskModal 

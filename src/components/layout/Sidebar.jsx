@@ -5,7 +5,6 @@ import { useTheme } from '../../contexts/ThemeContext'
 export default function Sidebar() {
   const { theme, toggleTheme } = useTheme()
 
-  // This automatically applies the blue highlight if the link is active
   const navLinkClass = ({ isActive }) => 
     `w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${
       isActive 
@@ -43,6 +42,10 @@ export default function Sidebar() {
         </NavLink>
         <NavLink to="/notes" className={navLinkClass}>
           Neural Notes
+        </NavLink>
+        {/* New Settings Route Added Safely */}
+        <NavLink to="/settings" className={navLinkClass}>
+          Settings
         </NavLink>
       </nav>
 
