@@ -17,11 +17,20 @@ export default function Sidebar() {
       
       {/* Brand Block */}
       <div className="flex items-center gap-3 mb-10">
-        <img 
-          src={logo} 
-          alt="ATUW Logo" 
-          className="w-10 h-10 object-contain drop-shadow-md rounded-md"
-        />
+        <a 
+          href="https://github.com/AryanChauhanA/ATUW-PLANNER" 
+          target="_blank" 
+          rel="noreferrer"
+          className="group relative transition-transform hover:scale-105 block"
+          title="View Source Code"
+        >
+          <div className="absolute -inset-2 bg-brand/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <img 
+            src={logo} 
+            alt="ATUW Logo" 
+            className="w-10 h-10 object-contain drop-shadow-md rounded-md relative z-10"
+          />
+        </a>
         <div>
           <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand to-blue-500 tracking-wider leading-none">
             ATUW
@@ -43,7 +52,6 @@ export default function Sidebar() {
         <NavLink to="/notes" className={navLinkClass}>
           Neural Notes
         </NavLink>
-        {/* New Settings Route Added Safely */}
         <NavLink to="/settings" className={navLinkClass}>
           Settings
         </NavLink>
