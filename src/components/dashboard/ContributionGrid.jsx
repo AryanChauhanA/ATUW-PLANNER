@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
-import { Activity } from 'lucide-react'
+import { Activity, Flame } from 'lucide-react'
 
 export default function ContributionGrid({ history }) {
-  const { gridDays, monthLabels, years } = useMemo(() => {
+  const { gridDays, monthLabels, years, currentStreak } = useMemo(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
@@ -28,7 +28,7 @@ export default function ContributionGrid({ history }) {
       }
     }
 
-    // CRASH FIX: Fallback to an empty object if history is null/corrupt
+    // Safe history parsing
     const safeHistory = history || {}
     const historyYears = Object.keys(safeHistory).map(dateStr => parseInt(dateStr.split('-')[0])).filter(y => !isNaN(y))
     const currentYear = today.getFullYear()
@@ -37,7 +37,40 @@ export default function ContributionGrid({ history }) {
     const generatedYears = []
     for(let y = currentYear; y >= creationYear; y--) generatedYears.push(y)
 
-    return { gridDays: generatedDays, monthLabels: generatedMonths, years: generatedYears }
+    // STREAK CALCULATOR
+    let streak = 0
+    let checkDate = new Date(today)
+    
+    const getCountForDate = (dateObj) => {
+      const dStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`
+      const raw = safeHistory[dStr]
+      return Array.isArray(raw) ? raw.length : (typeof raw === 'number' ? raw : 0)
+    }
+
+    // Check today first
+    const todayCount = getCountForDate(checkDate)
+    
+    // If today is 0, streak might still be alive from yesterday
+    if (todayCount === 0) {
+      checkDate.setDate(checkDate.getDate() - 1)
+      if (getCountForDate(checkDate) === 0) {
+        streak = 0 // Lost streak
+      }
+    }
+
+    // If streak isn't definitively 0 yet, count backwards
+    if (streak !== 0 || todayCount > 0) {
+      while (true) {
+        if (getCountForDate(checkDate) > 0) {
+          streak++
+          checkDate.setDate(checkDate.getDate() - 1)
+        } else {
+          break
+        }
+      }
+    }
+
+    return { gridDays: generatedDays, monthLabels: generatedMonths, years: generatedYears, currentStreak: streak }
   }, [history])
 
   const getHeatColor = (count) => {
@@ -50,9 +83,21 @@ export default function ContributionGrid({ history }) {
 
   return (
     <div className="bg-surface/50 backdrop-blur-xl border border-border rounded-2xl p-4 md:p-5 shadow-sm flex flex-col min-w-0">
-      <div className="flex items-center gap-2 mb-4">
-        <Activity size={16} className="text-brand" />
-        <h2 className="text-xs font-bold text-muted uppercase tracking-widest">Consistency Map</h2>
+      
+      {/* HEADER WITH STREAK COUNTER */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Activity size={16} className="text-brand" />
+          <h2 className="text-xs font-bold text-muted uppercase tracking-widest">Consistency Map</h2>
+        </div>
+        
+        {/* Only show streak badge if streak is > 0 */}
+        {currentStreak > 0 && (
+          <div className="flex items-center gap-1.5 bg-orange-500/10 text-orange-500 border border-orange-500/20 px-2.5 py-1 rounded-full shadow-sm">
+            <Flame size={12} className={currentStreak > 3 ? "animate-pulse" : ""} />
+            <span className="text-[10px] font-bold uppercase tracking-widest">{currentStreak} Day Streak</span>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col md:flex-row gap-6 min-w-0 w-full">
@@ -77,7 +122,6 @@ export default function ContributionGrid({ history }) {
                 {gridDays.map((date, idx) => {
                   const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
                   
-                  // CRASH FIX: Parse length safely regardless of legacy (number) or new (array) data
                   const rawData = history ? history[dateStr] : null
                   let count = 0
                   if (Array.isArray(rawData)) count = rawData.length

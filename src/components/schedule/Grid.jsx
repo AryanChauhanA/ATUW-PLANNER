@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 
-export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView }) {
+export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView, targetHour, targetDay }) {
   const [now, setNow] = useState(new Date())
   const scrollRef = useRef(null)
 
@@ -9,24 +9,33 @@ export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView }) {
     return () => clearInterval(interval)
   }, [])
 
-  // Bulletproof Dual-Axis Scroll (requestAnimationFrame Fix)
+  // Bulletproof Dual-Axis Scroll
   useEffect(() => {
     let animationFrame;
     
-    // Wait for the browser to finish its native paint cycle
     animationFrame = requestAnimationFrame(() => {
       if (scrollRef.current && !isFullView) {
         const container = scrollRef.current;
         
-        // Vertical Scroll: Center current time
-        const verticalScroll = (now.getHours() * 60) - 150;
+        // 1. Determine Target Hour (Fallback to current time)
+        const scrollHour = targetHour !== undefined ? parseInt(targetHour) : now.getHours();
         
-        // Horizontal Scroll: Center current day (if on a narrow screen)
-        const currentDayIdx = now.getDay() === 0 ? 6 : now.getDay() - 1;
+        // 2. Determine Target Day (Fallback to current day)
+        const daysArray = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        let scrollDayIdx = now.getDay() === 0 ? 6 : now.getDay() - 1;
+        
+        if (targetDay) {
+          const idx = daysArray.indexOf(targetDay);
+          if (idx !== -1) scrollDayIdx = idx;
+        }
+        
+        // Vertical Scroll: Center target hour
+        const verticalScroll = (scrollHour * 60) - 150;
+        
+        // Horizontal Scroll: Center target day
         const timeColumnWidth = 64; 
         const dayColumnWidth = (container.scrollWidth - timeColumnWidth) / 7;
-        
-        const centerOfDay = timeColumnWidth + (currentDayIdx * dayColumnWidth) + (dayColumnWidth / 2);
+        const centerOfDay = timeColumnWidth + (scrollDayIdx * dayColumnWidth) + (dayColumnWidth / 2);
         const horizontalScroll = centerOfDay - (container.clientWidth / 2);
         
         // Use native scrollTo with 'auto' to instantly snap, ignoring CSS smooth scrolling
@@ -39,7 +48,7 @@ export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView }) {
     });
     
     return () => cancelAnimationFrame(animationFrame);
-  }, [isFullView]) // Removed 'now' to prevent scrolling from hijacking the user every 60 seconds
+  }, [isFullView, targetHour, targetDay]) // Removed 'now' to prevent scrolling from hijacking the user every 60 seconds
 
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
   const hours = Array.from({ length: 24 }, (_, i) => i)
@@ -60,13 +69,9 @@ export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView }) {
   }
 
   return (
-    // Outer Container: Enables scrolling
     <div ref={scrollRef} className="flex-1 bg-surface backdrop-blur-xl border border-border rounded-2xl overflow-auto relative shadow-sm scroll-smooth">
-      
-      {/* Width Wrapper: Squeezes to screen in Full View, stays 800px min in Normal View */}
       <div className={`flex flex-col relative transition-all duration-300 ${isFullView ? 'w-full h-full min-h-[400px]' : 'min-w-[800px]'}`}>
         
-        {/* Sticky Header */}
         <div className="sticky top-0 z-40 flex border-b border-border bg-background/80 backdrop-blur-md">
           <div className="w-16 flex-shrink-0 border-r border-border sticky left-0 z-50 bg-background/95"></div>
           {days.map((day, index) => (
@@ -76,10 +81,8 @@ export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView }) {
           ))}
         </div>
 
-        {/* Dynamic Body: h-full for Full View, h-[1440px] for Normal View */}
         <div className={`relative flex flex-col ${isFullView ? 'flex-1' : 'h-[1440px]'}`}>
           
-          {/* Current Time Line */}
           <div 
             className="absolute z-20 flex items-center pointer-events-none transition-all duration-1000"
             style={{ top: getTimeLineTop(), left: `calc(4rem + ${currentDayIndex} * ((100% - 4rem) / 7))`, width: `calc((100% - 4rem) / 7)` }}
@@ -89,7 +92,6 @@ export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView }) {
             </div>
           </div>
 
-          {/* Render Tasks */}
           {tasks.map((task) => {
             const dayIndex = days.indexOf(task.day)
             let colorTheme = "bg-brand/20 border-brand/30 text-brand"
@@ -120,17 +122,14 @@ export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView }) {
             )
           })}
 
-          {/* Background Grid Slots */}
           <div className="absolute inset-0 flex flex-col pointer-events-none">
             {hours.map((hour) => (
               <div key={hour} className={`flex border-b border-border/40 group ${isFullView ? 'flex-1 min-h-0' : 'h-[60px]'}`}>
-                {/* Time Axis */}
                 <div className="w-16 flex-shrink-0 flex justify-center py-1 md:py-2 border-r border-border/40 sticky left-0 z-30 bg-surface/90 backdrop-blur-sm pointer-events-auto">
                   <span className={`text-[9px] md:text-[11px] font-semibold transition-colors relative md:-top-3 -top-2 ${hour === currentHour ? 'text-brand' : 'text-muted group-hover:text-primary'}`}>
                     {formatHour(hour)}
                   </span>
                 </div>
-                {/* Grid Slots */}
                 {days.map((day, dayIndex) => {
                   const isCurrentBlock = hour === currentHour && dayIndex === currentDayIndex;
                   return (

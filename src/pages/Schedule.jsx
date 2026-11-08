@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import Grid from '../components/schedule/Grid'
 import TaskModal from '../components/schedule/TaskModal'
 import HistoryModal from '../components/schedule/HistoryModal' 
@@ -6,16 +7,17 @@ import InsightsModal from '../components/schedule/InsightsModal'
 import { Sparkles, History, BarChart3, Shrink } from 'lucide-react'
 
 export default function Schedule() {
+  const location = useLocation()
+  const { targetHour, targetDay } = location.state || {}
 
-    const [isInsightsOpen, setIsInsightsOpen] = useState(false)
-    const [isFullView, setIsFullView] = useState(false)
+  const [isInsightsOpen, setIsInsightsOpen] = useState(false)
+  const [isFullView, setIsFullView] = useState(false)
 
   const [tasks, setTasks] = useState(() => {
     const savedTasks = localStorage.getItem('atuw_tasks')
     return savedTasks ? JSON.parse(savedTasks) : []
   })
   
-  // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isHistoryOpen, setIsHistoryOpen] = useState(false) 
   
@@ -60,7 +62,6 @@ export default function Schedule() {
     setEditingTask(null)
   }
 
-  // Load a snapshot from the History Modal
   const handleLoadSnapshot = (snapshotTasks) => {
     setTasks(snapshotTasks)
   }
@@ -68,17 +69,14 @@ export default function Schedule() {
   return (
     <div className="max-w-7xl mx-auto flex flex-col h-full pb-8">
       
-      {/* Responsive Header & Controls */}
       <div className="mb-4 flex flex-row justify-between items-center gap-2">
         <div>
           <h1 className="text-xl md:text-3xl font-extrabold text-primary tracking-tight">Weekly Plan</h1>
-          {/* Subtitle hides on mobile, shows on PC */}
           <p className="hidden md:block text-muted text-sm font-medium mt-1 uppercase tracking-widest">
             24x7 Schedule Canvas
           </p>
         </div>
         
-        {/* Action Buttons: Text hides on mobile, icons stay centered */}
         <div className="flex gap-2">
           <button className="flex items-center justify-center p-2.5 md:px-4 md:py-2 bg-brand/10 text-brand md:text-sm font-bold rounded-xl border border-brand/20 hover:bg-brand/20 transition-all shadow-sm">
             <Sparkles size={18} />
@@ -101,7 +99,6 @@ export default function Schedule() {
             <span className="hidden md:inline ml-2">Insights</span>
           </button>
 
-          {/* Squeeze/Full View Button: Hidden on Desktop (md:hidden) */}
           <button 
             onClick={() => setIsFullView(!isFullView)}
             className={`md:hidden flex items-center justify-center p-2.5 hover:bg-surface-hover font-bold rounded-xl border transition-all ${isFullView ? 'bg-brand/10 text-brand border-brand/30' : 'bg-surface text-muted hover:text-primary border-border'}`}
@@ -116,6 +113,8 @@ export default function Schedule() {
         onSlotClick={handleSlotClick} 
         onTaskClick={handleTaskClick}
         isFullView={isFullView}
+        targetHour={targetHour}
+        targetDay={targetDay}
       />
 
       <TaskModal 
@@ -131,7 +130,6 @@ export default function Schedule() {
         tasks={tasks}
       />
 
-      {/* Render History Modal */}
       <HistoryModal 
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
@@ -139,7 +137,6 @@ export default function Schedule() {
         onLoadSnapshot={handleLoadSnapshot}
       />
 
-      {/* Render Insights Modal */}
       <InsightsModal 
         isOpen={isInsightsOpen}
         onClose={() => setIsInsightsOpen(false)}
