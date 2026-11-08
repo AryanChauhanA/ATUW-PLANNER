@@ -1,16 +1,41 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Activity, Flame } from 'lucide-react'
 
 export default function ContributionGrid({ history }) {
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear())
+
   const { gridDays, monthLabels, years, currentStreak } = useMemo(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
+    const currentRealYear = today.getFullYear()
 
-    const currentDayIdx = today.getDay() === 0 ? 6 : today.getDay() - 1
+    // 1. Calculate available years strictly from VALID history
+    const safeHistory = history || {}
+    const historyYears = Object.keys(safeHistory)
+      .filter(dateStr => {
+        const val = safeHistory[dateStr]
+        // Only count the year if there is ACTUAL completed data, ignoring empty ghost entries
+        return (Array.isArray(val) && val.length > 0) || (typeof val === 'number' && val > 0)
+      })
+      .map(dateStr => parseInt(dateStr.split('-')[0]))
+      .filter(y => !isNaN(y) && y > 2000 && y <= currentRealYear) // Sanity check boundary
+
+    const creationYear = historyYears.length > 0 ? Math.min(...historyYears) : currentRealYear
+    
+    const generatedYears = []
+    for(let y = currentRealYear; y >= creationYear; y--) generatedYears.push(y)
+
+    // 2. Adjust Grid End Date based on selected year
+    const endDate = new Date(today)
+    if (selectedYear !== currentRealYear) {
+      endDate.setFullYear(selectedYear, 11, 31)
+    }
+
+    const currentDayIdx = endDate.getDay() === 0 ? 6 : endDate.getDay() - 1
     const totalDays = (52 * 7) + (currentDayIdx + 1)
 
-    const startDate = new Date(today)
-    startDate.setDate(today.getDate() - (totalDays - 1))
+    const startDate = new Date(endDate)
+    startDate.setDate(endDate.getDate() - (totalDays - 1))
 
     const generatedDays = []
     const generatedMonths = []
@@ -28,16 +53,7 @@ export default function ContributionGrid({ history }) {
       }
     }
 
-    // Safe history parsing
-    const safeHistory = history || {}
-    const historyYears = Object.keys(safeHistory).map(dateStr => parseInt(dateStr.split('-')[0])).filter(y => !isNaN(y))
-    const currentYear = today.getFullYear()
-    const creationYear = historyYears.length > 0 ? Math.min(...historyYears) : currentYear
-    
-    const generatedYears = []
-    for(let y = currentYear; y >= creationYear; y--) generatedYears.push(y)
-
-    // STREAK CALCULATOR
+    // 3. STREAK CALCULATOR
     let streak = 0
     let checkDate = new Date(today)
     
@@ -47,18 +63,13 @@ export default function ContributionGrid({ history }) {
       return Array.isArray(raw) ? raw.length : (typeof raw === 'number' ? raw : 0)
     }
 
-    // Check today first
     const todayCount = getCountForDate(checkDate)
     
-    // If today is 0, streak might still be alive from yesterday
     if (todayCount === 0) {
       checkDate.setDate(checkDate.getDate() - 1)
-      if (getCountForDate(checkDate) === 0) {
-        streak = 0 // Lost streak
-      }
+      if (getCountForDate(checkDate) === 0) streak = 0
     }
 
-    // If streak isn't definitively 0 yet, count backwards
     if (streak !== 0 || todayCount > 0) {
       while (true) {
         if (getCountForDate(checkDate) > 0) {
@@ -71,7 +82,7 @@ export default function ContributionGrid({ history }) {
     }
 
     return { gridDays: generatedDays, monthLabels: generatedMonths, years: generatedYears, currentStreak: streak }
-  }, [history])
+  }, [history, selectedYear])
 
   const getHeatColor = (count) => {
     if (!count || count === 0) return 'bg-surface border-border/80'
@@ -84,14 +95,12 @@ export default function ContributionGrid({ history }) {
   return (
     <div className="bg-surface/50 backdrop-blur-xl border border-border rounded-2xl p-4 md:p-5 shadow-sm flex flex-col min-w-0">
       
-      {/* HEADER WITH STREAK COUNTER */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Activity size={16} className="text-brand" />
           <h2 className="text-xs font-bold text-muted uppercase tracking-widest">Consistency Map</h2>
         </div>
         
-        {/* Only show streak badge if streak is > 0 */}
         {currentStreak > 0 && (
           <div className="flex items-center gap-1.5 bg-orange-500/10 text-orange-500 border border-orange-500/20 px-2.5 py-1 rounded-full shadow-sm">
             <Flame size={12} className={currentStreak > 3 ? "animate-pulse" : ""} />
@@ -140,10 +149,14 @@ export default function ContributionGrid({ history }) {
           </div>
         </div>
 
-        {/* PC Years */}
-        <div className="hidden md:flex flex-col gap-2 pl-4 border-l border-border/50 w-24 flex-shrink-0">
+        {/* PC Years (Now with overflow handling in case of many valid years) */}
+        <div className="hidden md:flex flex-col gap-2 pl-4 border-l border-border/50 w-24 flex-shrink-0 overflow-y-auto max-h-[160px] custom-scrollbar">
           {years.map(y => (
-            <button key={y} className={`text-left text-sm px-3 py-1 rounded-lg ${y === years[0] ? 'bg-brand text-white font-bold' : 'text-muted hover:text-primary hover:bg-surface-hover'}`}>
+            <button 
+              key={y} 
+              onClick={() => setSelectedYear(y)}
+              className={`text-left text-sm px-3 py-1 rounded-lg transition-colors ${y === selectedYear ? 'bg-brand text-white font-bold' : 'text-muted hover:text-primary hover:bg-surface-hover'}`}
+            >
               {y}
             </button>
           ))}
@@ -153,7 +166,11 @@ export default function ContributionGrid({ history }) {
       {/* Mobile Years */}
       <div className="md:hidden flex gap-2 mt-2 overflow-x-auto custom-scrollbar w-full border-t border-border/50 pt-4">
         {years.map(y => (
-          <button key={`mob-${y}`} className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-lg ${y === years[0] ? 'bg-brand text-white font-bold' : 'text-muted hover:text-primary hover:bg-surface-hover border border-border'}`}>
+          <button 
+            key={`mob-${y}`} 
+            onClick={() => setSelectedYear(y)}
+            className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-lg transition-colors border ${y === selectedYear ? 'bg-brand text-white font-bold border-brand' : 'text-muted hover:text-primary hover:bg-surface-hover border-border'}`}
+          >
             {y}
           </button>
         ))}
