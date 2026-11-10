@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
-import logo from '../../assets/logo.png'
 import { useTheme } from '../../contexts/ThemeContext'
+import logo from '../../assets/logo.svg'
 
 export default function Sidebar() {
   const { theme, toggleTheme } = useTheme()
@@ -25,17 +25,34 @@ export default function Sidebar() {
           title="View Source Code"
         >
           <div className="absolute -inset-2 bg-brand/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <img 
-            src={logo} 
-            alt="ATUW Logo" 
-            className="w-10 h-10 object-contain drop-shadow-md rounded-md relative z-10"
-          />
+          
+          {/* BRIGHT OUTER SQUARE */}
+          <div 
+            className="w-11 h-11 rounded-xl flex items-center justify-center transition-colors duration-300 shadow-sm relative z-10"
+            style={{ backgroundColor: 'var(--brand-primary)' }}
+          >
+            {/* DARK INNER LOGO */}
+            <div 
+              className="w-full h-full transition-colors duration-300"
+              style={{ 
+                backgroundColor: '#0f172a',
+                maskImage: `url(${logo})`, 
+                WebkitMaskImage: `url(${logo})`,
+                maskSize: '95%', /* <-- Change this to 90% or 100% if you want it even bigger */
+                WebkitMaskSize: '95%',
+                maskRepeat: 'no-repeat',
+                WebkitMaskRepeat: 'no-repeat',
+                maskPosition: 'center',
+                WebkitMaskPosition: 'center'
+              }}
+            ></div>
+          </div>
         </a>
         <div>
-          <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand to-blue-500 tracking-wider leading-none">
+          <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand to-brand/70 tracking-wider leading-none transition-colors duration-300">
             ATUW
           </h2>
-          <p className="text-[10px] text-brand font-bold tracking-[0.2em] uppercase mt-1">
+          <p className="text-[10px] text-brand font-bold tracking-[0.2em] uppercase mt-1 transition-colors duration-300">
             Planner
           </p>
         </div>

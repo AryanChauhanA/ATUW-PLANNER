@@ -20,7 +20,7 @@
   --border-color: rgba(15, 23, 42, 0.1);
   --text-main: #0f172a; /* Deep Navy */
   --text-muted: #64748b; 
-  --brand-primary: #0ea5e9; /* Sky Blue (Anchor) */
+  --brand-primary: #0ea5e9; /* Cyan (Default) */
   --brand-hover: #0284c7; 
   --glass-bg: rgba(255, 255, 255, 0.6);
 }
@@ -33,7 +33,25 @@
   --border-color: rgba(255, 255, 255, 0.1);
   --text-main: #f8fafc; /* Crisp White */
   --text-muted: #94a3b8;
-  --brand-primary: #0ea5e9; /* Sky Blue (Anchor) */
+  --brand-primary: #0ea5e9; /* Cyan (Default) */
   --brand-hover: #38bdf8;
   --glass-bg: rgba(2, 6, 23, 0.4);
+}
+
+/* --- THEMES --- */
+/* We will toggle these classes on the body later when the user selects a color */
+.theme-emerald { --brand-primary: #10b981; --brand-hover: #34d399; }
+.theme-violet { --brand-primary: #8b5cf6; --brand-hover: #a78bfa; }
+.theme-rose { --brand-primary: #f43f5e; --brand-hover: #fb7185; }
+
+/* --- DYNAMIC LOGO MASK --- */
+/* This pours the brand color into the shape of your SVG */
+.dynamic-logo {
+  background-color: var(--brand-primary);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
 }

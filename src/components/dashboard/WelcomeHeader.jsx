@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { UserCircle } from 'lucide-react'
-import logo from '../../assets/logo.png' 
+import logo from '../../assets/logo.svg'
 
 export default function WelcomeHeader({ openSignIn }) {
   const [time, setTime] = useState(new Date())
@@ -29,9 +29,30 @@ export default function WelcomeHeader({ openSignIn }) {
   return (
     <div className="flex items-center justify-between bg-surface/30 backdrop-blur-xl border border-border/50 rounded-2xl p-5 shadow-sm">
       <div className="flex items-center gap-4 flex-1">
+        
         {/* Mobile GitHub Logo */}
         <a href="https://github.com/AryanChauhanA/ATUW-PLANNER" target="_blank" rel="noreferrer" className="md:hidden">
-          <img src={logo} alt="ATUW" className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(14,165,233,0.5)]" />
+          {/* BRIGHT OUTER SQUARE */}
+          <div 
+            className="w-11 h-11 rounded-xl flex items-center justify-center transition-colors duration-300 shadow-sm relative z-10"
+            style={{ backgroundColor: 'var(--brand-primary)' }}
+          >
+            {/* DARK INNER LOGO */}
+            <div 
+              className="w-full h-full transition-colors duration-300"
+              style={{ 
+                backgroundColor: '#0f172a',
+                maskImage: `url(${logo})`, 
+                WebkitMaskImage: `url(${logo})`,
+                maskSize: '95%', /* <-- Change this to 90% or 100% if you want it even bigger */
+                WebkitMaskSize: '95%',
+                maskRepeat: 'no-repeat',
+                WebkitMaskRepeat: 'no-repeat',
+                maskPosition: 'center',
+                WebkitMaskPosition: 'center'
+              }}
+            ></div>
+          </div>
         </a>
 
         <div>
@@ -43,13 +64,13 @@ export default function WelcomeHeader({ openSignIn }) {
                 value={inputName}
                 onChange={(e) => setInputName(e.target.value)}
                 placeholder="What is your name?"
-                className="bg-background border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-brand w-max"
+                className="bg-background border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-brand w-max transition-colors duration-300"
               />
             </form>
           ) : (
             <>
               <h1 className="text-xl md:text-2xl font-extrabold text-primary tracking-tight">{greeting}</h1>
-              <p className="text-sm font-medium text-brand uppercase tracking-widest mt-1">
+              <p className="text-sm font-medium text-brand uppercase tracking-widest mt-1 transition-colors duration-300">
                 {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </p>
             </>
