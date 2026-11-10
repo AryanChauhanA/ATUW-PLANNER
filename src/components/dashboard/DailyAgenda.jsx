@@ -22,11 +22,15 @@ export default function DailyAgenda({ tasks, history, setHistory }) {
   // Yesterday's tasks that are within the 24h trailing window
   const yesterdayTasks = safeTasks
     .filter(t => t?.day === yesterdayDayName && parseInt(t?.hour || 0) > currentHour)
+    // FILTER: Must be a routine OR specifically targeted for yesterday
+    .filter(t => t.isRoutine !== false || t.targetDate === yesterdayStr)
     .map(t => ({ ...t, dateStr: yesterdayStr, isYesterday: true }))
 
   // Today's tasks
   const todayTasks = safeTasks
     .filter(t => t?.day === currentDayName)
+    // FILTER: Must be a routine OR specifically targeted for today
+    .filter(t => t.isRoutine !== false || t.targetDate === todayStr)
     .map(t => ({ ...t, dateStr: todayStr, isYesterday: false }))
 
   // Combine and sort
@@ -98,7 +102,9 @@ export default function DailyAgenda({ tasks, history, setHistory }) {
                 </div>
                 <div className={`flex flex-col min-w-0 ${isDone ? 'opacity-50 line-through' : ''}`}>
                   <div className="flex items-center justify-between w-full gap-2">
-                    <span className="text-sm font-bold text-primary truncate">{task.title}</span>
+                    <span className="text-sm font-bold text-primary truncate">
+                      {task.isRoutine === false && <span className="text-amber-500 mr-1">①</span>} {task.title}
+                    </span>
                     {task.isYesterday && (
                       <span className="text-[9px] text-amber-500 font-bold uppercase tracking-wider">Yesterday</span>
                     )}

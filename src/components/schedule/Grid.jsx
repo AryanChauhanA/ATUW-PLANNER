@@ -9,18 +9,13 @@ export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView, targ
     return () => clearInterval(interval)
   }, [])
 
-  // Bulletproof Dual-Axis Scroll
   useEffect(() => {
     let animationFrame;
-    
     animationFrame = requestAnimationFrame(() => {
       if (scrollRef.current && !isFullView) {
         const container = scrollRef.current;
-        
-        // 1. Determine Target Hour (Fallback to current time)
         const scrollHour = targetHour !== undefined ? parseInt(targetHour) : now.getHours();
         
-        // 2. Determine Target Day (Fallback to current day)
         const daysArray = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
         let scrollDayIdx = now.getDay() === 0 ? 6 : now.getDay() - 1;
         
@@ -29,16 +24,12 @@ export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView, targ
           if (idx !== -1) scrollDayIdx = idx;
         }
         
-        // Vertical Scroll: Center target hour
         const verticalScroll = (scrollHour * 60) - 150;
-        
-        // Horizontal Scroll: Center target day
         const timeColumnWidth = 64; 
         const dayColumnWidth = (container.scrollWidth - timeColumnWidth) / 7;
         const centerOfDay = timeColumnWidth + (scrollDayIdx * dayColumnWidth) + (dayColumnWidth / 2);
         const horizontalScroll = centerOfDay - (container.clientWidth / 2);
         
-        // Use native scrollTo with 'auto' to instantly snap, ignoring CSS smooth scrolling
         container.scrollTo({
           top: verticalScroll > 0 ? verticalScroll : 0,
           left: horizontalScroll > 0 ? horizontalScroll : 0,
@@ -46,16 +37,40 @@ export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView, targ
         });
       }
     });
-    
     return () => cancelAnimationFrame(animationFrame);
-  }, [isFullView, targetHour, targetDay]) // Removed 'now' to prevent scrolling from hijacking the user every 60 seconds
+  }, [isFullView, targetHour, targetDay])
 
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
   const hours = Array.from({ length: 24 }, (_, i) => i)
   const currentDayIndex = now.getDay() === 0 ? 6 : now.getDay() - 1
   const currentHour = now.getHours()
 
-  // Hybrid Math Engine (Pixels for Normal, Percentages for Full View)
+  // --- HYBRID TASK ENGINE: Map this week's exact dates ---
+  const currentWeekDates = {}
+  const startOfWeek = new Date(now)
+  startOfWeek.setHours(0,0,0,0)
+  startOfWeek.setDate(now.getDate() - currentDayIndex) 
+
+  days.forEach((dayStr, idx) => {
+    const d = new Date(startOfWeek)
+    d.setDate(startOfWeek.getDate() + idx)
+    currentWeekDates[dayStr] = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })
+  
+  // --- EXPIRED LOGIC: Check if a One-Time task is in the past ---
+  const checkIsExpired = (task) => {
+    if (task.isRoutine !== false) return false
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    
+    if (task.targetDate < todayStr) return true
+    if (task.targetDate === todayStr) {
+      const currentMins = (now.getHours() * 60) + now.getMinutes()
+      const endMins = (parseInt(task.hour) * 60) + parseInt(task.duration)
+      return currentMins >= endMins
+    }
+    return false
+  }
+
   const getTaskTop = (hour) => isFullView ? `${(hour / 24) * 100}%` : `${hour * 60}px`
   const getTaskHeight = (duration) => isFullView ? `${(duration / 1440) * 100}%` : `${duration}px`
   
@@ -92,7 +107,9 @@ export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView, targ
             </div>
           </div>
 
-          {tasks.map((task) => {
+          {tasks
+            .filter(task => task.isRoutine !== false || task.targetDate === currentWeekDates[task.day])
+            .map((task) => {
             const dayIndex = days.indexOf(task.day)
             let colorTheme = "bg-brand/20 border-brand/30 text-brand"
             if (task.category === 'Exam') colorTheme = "bg-red-500/20 border-red-500/30 text-red-500"
@@ -101,11 +118,13 @@ export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView, targ
               colorTheme = "bg-purple-500/20 border-purple-500/30 text-purple-600" 
             }
 
+            const isExpired = checkIsExpired(task)
+
             return (
               <div 
                 key={task.id}
                 onClick={(e) => { e.stopPropagation(); onTaskClick(task); }}
-                className={`absolute z-10 rounded-lg border backdrop-blur-md p-1.5 md:p-2 shadow-sm flex flex-col overflow-hidden cursor-pointer hover:brightness-125 transition-all ${colorTheme}`}
+                className={`absolute z-10 rounded-lg border backdrop-blur-md p-1.5 md:p-2 shadow-sm flex flex-col overflow-hidden cursor-pointer transition-all ${colorTheme} ${isExpired ? 'opacity-40 grayscale hover:opacity-60' : 'hover:brightness-125'}`}
                 style={{
                   top: getTaskTop(task.hour),
                   height: getTaskHeight(task.duration),
@@ -114,7 +133,10 @@ export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView, targ
                   marginLeft: '3px'
                 }}
               >
-                <span className="text-[10px] md:text-xs font-bold truncate leading-tight">{task.title}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] md:text-xs font-bold truncate leading-tight">{task.title}</span>
+                  {task.isRoutine === false && <span className="text-[8px] md:text-[9px] opacity-70">①</span>}
+                </div>
                 {!isFullView && (
                   <span className="text-[9px] md:text-[10px] opacity-80 truncate mt-0.5">{task.duration}m • {task.category}</span>
                 )}
@@ -124,7 +146,7 @@ export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView, targ
 
           <div className="absolute inset-0 flex flex-col pointer-events-none">
             {hours.map((hour) => (
-              <div key={hour} className={`flex border-b border-border/40 group ${isFullView ? 'flex-1 min-h-0' : 'h-[60px]'}`}>
+              <div key={hour} data-hour={hour} className={`flex border-b border-border/40 group ${isFullView ? 'flex-1 min-h-0' : 'h-[60px]'}`}>
                 <div className="w-16 flex-shrink-0 flex justify-center py-1 md:py-2 border-r border-border/40 sticky left-0 z-30 bg-surface/90 backdrop-blur-sm pointer-events-auto">
                   <span className={`text-[9px] md:text-[11px] font-semibold transition-colors relative md:-top-3 -top-2 ${hour === currentHour ? 'text-brand' : 'text-muted group-hover:text-primary'}`}>
                     {formatHour(hour)}

@@ -6,14 +6,15 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, selectedS
   const [customDuration, setCustomDuration] = useState('')
   const [category, setCategory] = useState('Self Study')
   const [customCategory, setCustomCategory] = useState('')
-  const [error, setError] = useState(null) // New error state
+  const [isRoutine, setIsRoutine] = useState(true)
+  const [error, setError] = useState(null) 
 
-  // Populate data when modal opens
   useEffect(() => {
     if (isOpen) {
-      setError(null) // Clear any previous errors
+      setError(null) 
       if (editingTask) {
         setTitle(editingTask.title)
+        setIsRoutine(editingTask.isRoutine !== false) 
         
         const standardDurations = ['60', '90', '120']
         if (standardDurations.includes(editingTask.duration.toString())) {
@@ -38,6 +39,7 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, selectedS
         setCustomDuration('')
         setCategory('Self Study')
         setCustomCategory('')
+        setIsRoutine(true)
       }
     }
   }, [isOpen, editingTask])
@@ -50,10 +52,33 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, selectedS
     return h > 12 ? `${h - 12} PM` : `${h} AM`
   }
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      handleSave()
+  const calculateTargetDate = (targetDayStr) => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const targetDayNum = days.indexOf(targetDayStr)
+    const now = new Date()
+    const currentDayNum = now.getDay()
+
+    let daysToAdd = (targetDayNum - currentDayNum + 7) % 7
+    
+    if (daysToAdd === 0) {
+      const currentMinutes = (now.getHours() * 60) + now.getMinutes()
+      const taskStartMinutes = selectedSlot.hour * 60
+      const currentDur = duration === 'custom' ? parseInt(customDuration || 0) : parseInt(duration || 0)
+      const taskEndMinutes = taskStartMinutes + currentDur
+      
+      if (currentMinutes >= taskEndMinutes) {
+        daysToAdd = 7
+      }
     }
+    
+    const targetDate = new Date(now)
+    targetDate.setDate(now.getDate() + daysToAdd)
+    
+    return `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSave()
   }
 
   const handleSave = () => {
@@ -70,18 +95,13 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, selectedS
       return
     }
 
-    // --- COLLISION DETECTION ALGORITHM ---
-    const newStart = selectedSlot.hour * 60 // Convert start time to minutes
-    const newEnd = newStart + finalDuration // Calculate end time in minutes
+    const newStart = selectedSlot.hour * 60 
+    const newEnd = newStart + finalDuration 
 
     const conflict = tasks.find(t => {
-      // 1. Don't collide with itself if we are editing
       if (editingTask && t.id === editingTask.id) return false
-      
-      // 2. Only check blocks on the exact same day
       if (t.day !== selectedSlot.day) return false
       
-      // 3. Math: Does Task A overlap with Task B?
       const tStart = t.hour * 60
       const tEnd = tStart + t.duration
       return (newStart < tEnd && newEnd > tStart)
@@ -89,28 +109,79 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, selectedS
 
     if (conflict) {
       setError(`Time conflict detected with "${conflict.title}".`)
-      // Shake animation could go here later!
       return
     }
-    // -------------------------------------
 
     setError(null)
     onSave({
       title,
       duration: finalDuration,
-      category: finalCategory || 'Other'
+      category: finalCategory || 'Other',
+      isRoutine,
+      targetDate: isRoutine ? null : (editingTask && editingTask.targetDate ? editingTask.targetDate : calculateTargetDate(selectedSlot.day))
     })
   }
 
+  const targetDatePreview = !isRoutine ? (editingTask && editingTask.targetDate ? editingTask.targetDate : calculateTargetDate(selectedSlot.day)) : null
+
+  // --- UX: Check if the preview date falls outside the current week's grid ---
+  let isNextWeek = false;
+  if (targetDatePreview) {
+    const now = new Date();
+    const currentDayIdx = now.getDay() === 0 ? 6 : now.getDay() - 1; // Mon=0, Sun=6
+    
+    const thisSunday = new Date(now);
+    thisSunday.setDate(now.getDate() + (6 - currentDayIdx)); // Fast-forward to this week's Sunday
+    const thisSundayStr = `${thisSunday.getFullYear()}-${String(thisSunday.getMonth() + 1).padStart(2, '0')}-${String(thisSunday.getDate()).padStart(2, '0')}`;
+    
+    // If the target date is mathematically greater than this week's Sunday, it's next week!
+    isNextWeek = targetDatePreview > thisSundayStr;
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm transition-opacity">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm transition-opacity p-4">
       <div className="bg-surface border border-border p-6 rounded-2xl shadow-2xl w-full max-w-sm border-t-brand/50">
-        <h2 className="text-xl font-bold text-primary mb-1">
-          {editingTask ? 'Edit Block' : 'Create Block'}
-        </h2>
-        <p className="text-sm font-medium text-brand mb-5">
-          {selectedSlot.day} @ {formatHour(selectedSlot.hour)}
-        </p>
+        
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h2 className="text-xl font-bold text-primary mb-1">
+              {editingTask ? 'Edit Block' : 'Create Block'}
+            </h2>
+            <p className="text-sm font-medium text-brand">
+              {selectedSlot.day} @ {formatHour(selectedSlot.hour)}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex bg-background border border-border rounded-xl p-1 mb-4">
+          <button 
+            type="button"
+            onClick={() => setIsRoutine(true)}
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${isRoutine ? 'bg-brand/10 text-brand' : 'text-muted hover:text-primary'}`}
+          >
+            🔁 Routine
+          </button>
+          <button 
+            type="button"
+            onClick={() => setIsRoutine(false)}
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${!isRoutine ? 'bg-amber-500/10 text-amber-500' : 'text-muted hover:text-primary'}`}
+          >
+            ① One-Time
+          </button>
+        </div>
+
+        {!isRoutine && (
+          <div className="mb-4 flex flex-col items-center bg-amber-500/5 border border-amber-500/20 rounded-xl p-2.5">
+            <p className="text-[11px] text-amber-500/90 font-bold uppercase tracking-wider text-center">
+              Appears on {new Date(targetDatePreview).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+            </p>
+            {isNextWeek && (
+              <p className="text-[10px] text-amber-600/80 text-center mt-1.5 font-medium leading-tight px-2">
+                ⚠️ Scheduled for next week. It will remain hidden from your current weekly grid until then.
+              </p>
+            )}
+          </div>
+        )}
         
         <input 
           type="text" 
@@ -166,7 +237,6 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, selectedS
           )}
         </div>
 
-        {/* Error Message Display */}
         {error && (
           <div className="w-full mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm font-semibold text-center">
             {error}
@@ -183,16 +253,16 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, selectedS
             </button>
           ) : <div />}
 
-          <div className="flex gap-3">
+          <div className="flex gap-2 md:gap-3">
             <button 
               onClick={onClose} 
-              className="px-4 py-2 text-sm font-semibold text-muted hover:text-primary transition-colors"
+              className="px-3 md:px-4 py-2 text-sm font-semibold text-muted hover:text-primary transition-colors"
             >
               Cancel
             </button>
             <button 
               onClick={handleSave} 
-              className="px-6 py-2 bg-brand/10 text-brand border border-brand/20 rounded-xl text-sm font-bold hover:bg-brand hover:text-white transition-all shadow-sm"
+              className="px-5 md:px-6 py-2 bg-brand/10 text-brand border border-brand/20 rounded-xl text-sm font-bold hover:bg-brand hover:text-white transition-all shadow-sm"
             >
               Save
             </button>

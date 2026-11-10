@@ -6,9 +6,14 @@ export default function NowAndNext({ tasks }) {
   const now = new Date()
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const currentMinutes = (now.getHours() * 60) + now.getMinutes()
+  
+  // Calculate today's exact date string (YYYY-MM-DD)
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 
   const todaysTasks = (Array.isArray(tasks) ? tasks : [])
     .filter(t => t?.day === days[now.getDay()])
+    // FILTER: Must be a routine OR the target date must match today exactly
+    .filter(t => t.isRoutine !== false || t.targetDate === todayStr)
     .sort((a, b) => (parseInt(a.hour) || 0) - (parseInt(b.hour) || 0))
 
   const activeTask = todaysTasks.find(t => {
@@ -54,7 +59,9 @@ export default function NowAndNext({ tasks }) {
               className="bg-brand/10 border border-brand/30 rounded-xl p-4 flex-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-brand/20 hover:border-brand/50 hover:scale-[1.02] transition-all group"
               title="Click to view in Schedule"
             >
-              <h3 className="text-xl md:text-2xl font-bold text-primary mb-1 group-hover:text-brand transition-colors">{activeTask.title}</h3>
+              <h3 className="text-xl md:text-2xl font-bold text-primary mb-1 group-hover:text-brand transition-colors">
+                {activeTask.isRoutine === false && "① "} {activeTask.title}
+              </h3>
               <p className="text-sm text-brand/80">{activeTask.category} • {activeTask.duration}m</p>
             </div>
           ) : (
@@ -75,7 +82,9 @@ export default function NowAndNext({ tasks }) {
               className="bg-surface border border-border rounded-xl p-4 flex-1 flex flex-col justify-center items-center text-center cursor-pointer hover:border-brand/40 hover:scale-[1.02] transition-all group opacity-90 hover:opacity-100"
               title="Click to view in Schedule"
             >
-              <h3 className="text-lg md:text-xl font-bold text-primary mb-1 group-hover:text-brand transition-colors">{nextTask.title}</h3>
+              <h3 className="text-lg md:text-xl font-bold text-primary mb-1 group-hover:text-brand transition-colors">
+                {nextTask.isRoutine === false && "① "} {nextTask.title}
+              </h3>
               <p className="text-xs md:text-sm text-muted">Starts at {formatTime(nextTask.hour)}</p>
             </div>
           ) : (
