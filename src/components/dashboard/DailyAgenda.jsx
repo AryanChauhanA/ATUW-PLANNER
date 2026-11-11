@@ -1,8 +1,9 @@
 import { CheckSquare, Lock, History, AlertCircle } from 'lucide-react'
 import { useSettings } from '../../contexts/SettingsContext'
+import { playChime } from '../../utils/audio'
 
 export default function DailyAgenda({ tasks, history, setHistory }) {
-  const { strictMode, timeFormat } = useSettings() 
+  const { strictMode, timeFormat, audioChimes } = useSettings() 
   
   const now = new Date()
   const currentHour = now.getHours()
@@ -51,7 +52,11 @@ export default function DailyAgenda({ tasks, history, setHistory }) {
       newCompleted = completedIds.filter(taskId => taskId !== id)
     } else {
       newCompleted = [...completedIds, id]
-      // Audio chime logic will go here
+      
+      // Trigger the synthetic chime from utils if the setting is ON
+      if (audioChimes) {
+        playChime()
+      }
     }
 
     const newHistory = { ...history, [dateStr]: newCompleted }
@@ -109,7 +114,7 @@ export default function DailyAgenda({ tasks, history, setHistory }) {
 
             // 2. Lock State (Blocks the click)
             const isFutureLocked = isFuture
-            const isStrictLocked = strictMode && isPast // Locks BOTH missed and completed tasks
+            const isStrictLocked = strictMode && isPast 
 
             // 3. Visual States
             const isMissed = isStrictLocked && !isDone

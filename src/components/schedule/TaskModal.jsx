@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { useSettings } from '../../contexts/SettingsContext'
+import { playCreate } from '../../utils/audio'
 
 export default function TaskModal({ isOpen, onClose, onSave, onDelete, selectedSlot, editingTask, tasks, defaultDuration }) {
   const [title, setTitle] = useState('')
@@ -8,6 +10,9 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, selectedS
   const [customCategory, setCustomCategory] = useState('')
   const [isRoutine, setIsRoutine] = useState(true)
   const [error, setError] = useState(null) 
+  
+  // Pull audio preference from global context
+  const { audioChimes } = useSettings()
 
   useEffect(() => {
     if (isOpen) {
@@ -52,7 +57,7 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, selectedS
         setIsRoutine(true)
       }
     }
-  }, [isOpen, editingTask, defaultDuration]) // Added defaultDuration to dependency array
+  }, [isOpen, editingTask, defaultDuration])
 
   if (!isOpen || !selectedSlot) return null
 
@@ -123,6 +128,12 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, selectedS
     }
 
     setError(null)
+    
+    // 🔥 SUCCESS MOMENT: Play the create pop chime before saving!
+    if (audioChimes) {
+      playCreate()
+    }
+    
     onSave({
       title,
       duration: finalDuration,
