@@ -5,6 +5,7 @@ import TaskModal from '../components/schedule/TaskModal'
 import HistoryModal from '../components/schedule/HistoryModal' 
 import InsightsModal from '../components/schedule/InsightsModal'
 import { Sparkles, History, BarChart3, Shrink } from 'lucide-react'
+import { useSettings } from '../contexts/SettingsContext'
 
 export default function Schedule() {
   const location = useLocation()
@@ -23,6 +24,9 @@ export default function Schedule() {
   
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [editingTask, setEditingTask] = useState(null)
+
+  // Pull user preferences directly from the new SettingsContext
+  const { startOfWeek, timeFormat, defaultBlock } = useSettings()
 
   useEffect(() => {
     localStorage.setItem('atuw_tasks', JSON.stringify(tasks))
@@ -48,6 +52,7 @@ export default function Schedule() {
         id: Math.random().toString(36).substr(2, 9),
         day: selectedSlot.day,
         hour: selectedSlot.hour,
+        duration: parseInt(defaultBlock), // Inject defaultBlock duration directly here
         ...taskData
       }
       setTasks([...tasks, newTask])
@@ -115,6 +120,8 @@ export default function Schedule() {
         isFullView={isFullView}
         targetHour={targetHour}
         targetDay={targetDay}
+        startOfWeek={startOfWeek} // Pass setting to Grid
+        timeFormat={timeFormat} // Pass setting to Grid
       />
 
       <TaskModal 
@@ -128,6 +135,7 @@ export default function Schedule() {
         selectedSlot={selectedSlot}
         editingTask={editingTask}
         tasks={tasks}
+        defaultDuration={parseInt(defaultBlock)} // Pass setting to TaskModal
       />
 
       <HistoryModal 

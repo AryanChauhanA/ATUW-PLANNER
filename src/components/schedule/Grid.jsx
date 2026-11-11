@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 
-export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView, targetHour, targetDay }) {
+export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView, targetHour, targetDay, startOfWeek, timeFormat }) {
   const [now, setNow] = useState(new Date())
   const scrollRef = useRef(null)
 
@@ -16,8 +16,14 @@ export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView, targ
         const container = scrollRef.current;
         const scrollHour = targetHour !== undefined ? parseInt(targetHour) : now.getHours();
         
-        const daysArray = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        let scrollDayIdx = now.getDay() === 0 ? 6 : now.getDay() - 1;
+        // 1. Dynamic Scroll Day Array based on Setting
+        const daysArray = startOfWeek === 'Sunday' 
+          ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+          : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+          
+        let scrollDayIdx = startOfWeek === 'Sunday'
+          ? now.getDay()
+          : (now.getDay() === 0 ? 6 : now.getDay() - 1);
         
         if (targetDay) {
           const idx = daysArray.indexOf(targetDay);
@@ -38,22 +44,31 @@ export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView, targ
       }
     });
     return () => cancelAnimationFrame(animationFrame);
-  }, [isFullView, targetHour, targetDay])
+  }, [isFullView, targetHour, targetDay, startOfWeek, now]) // <-- Added startOfWeek to dependencies
 
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  // 2. Dynamic Columns based on Setting
+  const days = startOfWeek === 'Sunday' 
+    ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    
   const hours = Array.from({ length: 24 }, (_, i) => i)
-  const currentDayIndex = now.getDay() === 0 ? 6 : now.getDay() - 1
+  
+  // 3. Dynamic Current Day Index based on Setting
+  const currentDayIndex = startOfWeek === 'Sunday'
+    ? now.getDay()
+    : (now.getDay() === 0 ? 6 : now.getDay() - 1);
+    
   const currentHour = now.getHours()
 
   // --- HYBRID TASK ENGINE: Map this week's exact dates ---
   const currentWeekDates = {}
-  const startOfWeek = new Date(now)
-  startOfWeek.setHours(0,0,0,0)
-  startOfWeek.setDate(now.getDate() - currentDayIndex) 
+  const startOfWeekDate = new Date(now)
+  startOfWeekDate.setHours(0,0,0,0)
+  startOfWeekDate.setDate(now.getDate() - currentDayIndex) 
 
   days.forEach((dayStr, idx) => {
-    const d = new Date(startOfWeek)
-    d.setDate(startOfWeek.getDate() + idx)
+    const d = new Date(startOfWeekDate)
+    d.setDate(startOfWeekDate.getDate() + idx)
     currentWeekDates[dayStr] = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   })
   
@@ -77,7 +92,10 @@ export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView, targ
   const totalCurrentMinutes = (currentHour * 60) + now.getMinutes()
   const getTimeLineTop = () => isFullView ? `${(totalCurrentMinutes / 1440) * 100}%` : `${totalCurrentMinutes}px`
 
+  // 4. Dynamic Time Formatting based on Setting
   const formatHour = (h) => {
+    if (timeFormat === '24h') return `${String(h).padStart(2, '0')}:00`
+    
     if (h === 0) return '12 AM'
     if (h === 12) return '12 PM'
     return h > 12 ? `${h - 12} PM` : `${h} AM`
@@ -100,7 +118,11 @@ export default function Grid({ tasks, onSlotClick, onTaskClick, isFullView, targ
           
           <div 
             className="absolute z-20 flex items-center pointer-events-none transition-all duration-1000"
-            style={{ top: getTimeLineTop(), left: `calc(4rem + ${currentDayIndex} * ((100% - 4rem) / 7))`, width: `calc((100% - 4rem) / 7)` }}
+            style={{ 
+              top: getTimeLineTop(), 
+              left: `calc(4rem + ${currentDayIndex} * ((100% - 4rem) / 7))`, 
+              width: `calc((100% - 4rem) / 7)` 
+            }}
           >
             <div className="w-full h-[2px] bg-brand/70 shadow-[0_0_10px_rgba(14,165,233,0.6)] relative">
               <div className="absolute -left-1 -top-1 w-2.5 h-2.5 bg-brand rounded-full"></div>

@@ -1,8 +1,11 @@
 import { Clock, ArrowRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useSettings } from '../../contexts/SettingsContext'
 
 export default function NowAndNext({ tasks }) {
   const navigate = useNavigate()
+  const { timeFormat } = useSettings() // <-- Pull the timeFormat preference
+  
   const now = new Date()
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const currentMinutes = (now.getHours() * 60) + now.getMinutes()
@@ -24,8 +27,11 @@ export default function NowAndNext({ tasks }) {
 
   const nextTask = todaysTasks.find(t => (parseInt(t.hour) * 60) > currentMinutes)
 
+  // Formats the time dynamically based on Settings
   const formatTime = (hour) => {
     const h = parseInt(hour)
+    if (timeFormat === '24h') return `${String(h).padStart(2, '0')}:00`
+    
     if (h === 0) return '12:00 AM'
     if (h === 12) return '12:00 PM'
     return h > 12 ? `${h - 12}:00 PM` : `${h}:00 AM`
@@ -62,7 +68,9 @@ export default function NowAndNext({ tasks }) {
               <h3 className="text-xl md:text-2xl font-bold text-primary mb-1 group-hover:text-brand transition-colors">
                 {activeTask.isRoutine === false && "① "} {activeTask.title}
               </h3>
-              <p className="text-sm text-brand/80">{activeTask.category} • {activeTask.duration}m</p>
+              <p className="text-sm text-brand/80">
+                {activeTask.category} • {activeTask.duration}m
+              </p>
             </div>
           ) : (
             <div className="bg-surface border border-border/50 rounded-xl p-4 flex-1 flex flex-col justify-center items-center text-muted border-dashed">

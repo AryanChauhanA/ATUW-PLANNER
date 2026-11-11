@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-export default function TaskModal({ isOpen, onClose, onSave, onDelete, selectedSlot, editingTask, tasks }) {
+export default function TaskModal({ isOpen, onClose, onSave, onDelete, selectedSlot, editingTask, tasks, defaultDuration }) {
   const [title, setTitle] = useState('')
   const [duration, setDuration] = useState('60')
   const [customDuration, setCustomDuration] = useState('')
@@ -16,7 +16,7 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, selectedS
         setTitle(editingTask.title)
         setIsRoutine(editingTask.isRoutine !== false) 
         
-        const standardDurations = ['60', '90', '120']
+        const standardDurations = ['30', '45', '60', '90', '120']
         if (standardDurations.includes(editingTask.duration.toString())) {
           setDuration(editingTask.duration.toString())
           setCustomDuration('')
@@ -35,14 +35,24 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, selectedS
         }
       } else {
         setTitle('')
-        setDuration('60')
-        setCustomDuration('')
+        // Use the defaultDuration passed from SettingsContext
+        const initialDur = defaultDuration ? defaultDuration.toString() : '60'
+        
+        const standardDurations = ['30', '45', '60', '90', '120']
+        if (standardDurations.includes(initialDur)) {
+          setDuration(initialDur)
+          setCustomDuration('')
+        } else {
+          setDuration('custom')
+          setCustomDuration(initialDur)
+        }
+        
         setCategory('Self Study')
         setCustomCategory('')
         setIsRoutine(true)
       }
     }
-  }, [isOpen, editingTask])
+  }, [isOpen, editingTask, defaultDuration]) // Added defaultDuration to dependency array
 
   if (!isOpen || !selectedSlot) return null
 
@@ -199,6 +209,8 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, selectedS
             onChange={(e) => setDuration(e.target.value)}
             className="w-full bg-background border border-border rounded-xl px-4 py-3 text-primary text-sm focus:outline-none focus:border-brand/50 transition-all"
           >
+            <option value="30">30 mins</option>
+            <option value="45">45 mins</option>
             <option value="60">1 Hour</option>
             <option value="90">1.5 Hours</option>
             <option value="120">2 Hours</option>
