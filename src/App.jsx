@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import Schedule from './pages/Schedule'
 import Notes from './pages/Notes'
 import Settings from './pages/Settings'
+import { SettingsProvider } from './contexts/SettingsContext' // <-- 1. Import the provider
 
 function App() {
   useEffect(() => {
@@ -41,16 +42,18 @@ function App() {
   }, [])
 
   return (
-    <Router>
-      <DashboardLayout>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/schedule" element={<Schedule />} />
-          <Route path="/notes" element={<Notes />} />
-          <Route path="/settings" element={<Settings />} />
-        </Routes>
-      </DashboardLayout>
-    </Router>
+    <SettingsProvider> {/* <-- 2. Wrap the Router */}
+      <Router>
+        <DashboardLayout>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/schedule" element={<Schedule />} />
+            <Route path="/notes" element={<Notes />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </DashboardLayout>
+      </Router>
+    </SettingsProvider>
   )
 }
 

@@ -39,10 +39,20 @@
 }
 
 /* --- THEMES --- */
-/* We will toggle these classes on the body later when the user selects a color */
-.theme-emerald { --brand-primary: #10b981; --brand-hover: #34d399; }
-.theme-violet { --brand-primary: #8b5cf6; --brand-hover: #a78bfa; }
-.theme-rose { --brand-primary: #f43f5e; --brand-hover: #fb7185; }
+/* Cyan is default in :root, so it doesn't need a class */
+
+:root.theme-magenta, .dark.theme-magenta { 
+  --brand-primary: #d946ef; 
+  --brand-hover: #e879f9; 
+}
+:root.theme-emerald, .dark.theme-emerald { 
+  --brand-primary: #10b981; 
+  --brand-hover: #34d399; 
+}
+:root.theme-amber, .dark.theme-amber { 
+  --brand-primary: #f59e0b; 
+  --brand-hover: #fbbf24; 
+}
 
 /* --- DYNAMIC LOGO MASK --- */
 /* This pours the brand color into the shape of your SVG */
