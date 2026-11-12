@@ -46,4 +46,4 @@ To run the current build of ATUW Planner locally:
 
 1. Clone the repository:
    ```bash
-   git clone [https://github.com/AryanChauhanA/ATUW-PLANNER.git](https://github.com/AryanChauhanA/ATUW-PLANNER.git)
+   git clone https://github.com/AryanChauhanA/ATUW-PLANNER.git
