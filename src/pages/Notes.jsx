@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { BrainCircuit } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+
 import NexusList from '../components/notes/NexusList'
 import HubEditor from '../components/notes/HubEditor'
 import BranchEditor from '../components/notes/BranchEditor'
@@ -12,13 +14,63 @@ export default function Notes() {
 
   const [activeHubId, setActiveHubId] = useState(null)
   const [activeBranchId, setActiveBranchId] = useState(null)
-  const [maximizedNode, setMaximizedNode] = useState(null) // 'hub' | 'branch' | null
+  const [maximizedNode, setMaximizedNode] = useState(null) 
 
+  // 1. The Cloud Sync Engine (Debounced)
+  const syncWithCloud = useCallback(async (currentLocalNotes) => {
+    localStorage.setItem('atuw_neural_notes', JSON.stringify(currentLocalNotes))
+    
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+
+    try {
+      const cloudReadyNotes = currentLocalNotes.map(note => ({
+        id: note.id,
+        user_id: session.user.id,
+        content: note.content || '',
+        metadata: {
+          title: note.title,
+          parentId: note.parentId,
+          updatedAt: note.updatedAt
+        }
+      }))
+
+      if (cloudReadyNotes.length > 0) {
+        await supabase.from('neural_notes').upsert(cloudReadyNotes, { onConflict: 'id' })
+      }
+    } catch (error) {
+      console.error("Notes Sync Error:", error)
+    }
+  }, [])
+
+  // 2. Initial Cloud Pull
   useEffect(() => {
-    localStorage.setItem('atuw_neural_notes', JSON.stringify(notes))
-  }, [notes])
+    const fetchCloudNotes = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
 
-  // Reset maximize state if the active node is closed
+      const { data, error } = await supabase.from('neural_notes').select('*')
+      
+      if (data && data.length > 0) {
+        const formattedData = data.map(dbNote => ({
+          id: dbNote.id,
+          content: dbNote.content,
+          ...dbNote.metadata // Unpacks title, parentId, updatedAt
+        }))
+        
+        setNotes(formattedData)
+        localStorage.setItem('atuw_neural_notes', JSON.stringify(formattedData))
+      }
+    }
+    fetchCloudNotes()
+  }, [])
+
+  // 3. Trigger Sync (with 1-second debounce for smooth typing)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => syncWithCloud(notes), 1000)
+    return () => clearTimeout(timeoutId)
+  }, [notes, syncWithCloud])
+
   useEffect(() => {
     if (!activeHubId && maximizedNode === 'hub') setMaximizedNode(null)
     if (!activeBranchId && maximizedNode === 'branch') setMaximizedNode(null)
@@ -40,7 +92,7 @@ export default function Notes() {
     setNotes([newNote, ...notes])
     if (parentId) {
       setActiveBranchId(newNote.id)
-      if (maximizedNode === 'hub') setMaximizedNode(null) // Un-maximize hub if branching
+      if (maximizedNode === 'hub') setMaximizedNode(null) 
     } else {
       setActiveHubId(newNote.id)
       setActiveBranchId(null)
@@ -53,13 +105,22 @@ export default function Notes() {
     ))
   }
 
-  const deleteNote = (id) => {
+  const deleteNote = async (id) => {
+    // 1. Local update
     setNotes(notes.filter(n => n.id !== id && n.parentId !== id))
     if (activeHubId === id) {
       setActiveHubId(null)
       setActiveBranchId(null)
     }
     if (activeBranchId === id) setActiveBranchId(null)
+
+    // 2. Cloud update (Directly delete to keep DB clean)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      await supabase.from('neural_notes').delete().eq('id', id)
+      // Also delete any child branches that belong to this hub
+      await supabase.from('neural_notes').delete().eq('metadata->>parentId', id)
+    }
   }
 
   return (

@@ -1,6 +1,7 @@
 import { CheckSquare, Lock, History, AlertCircle } from 'lucide-react'
 import { useSettings } from '../../contexts/SettingsContext'
 import { playChime } from '../../utils/audio'
+import { supabase } from '../../lib/supabase'
 
 export default function DailyAgenda({ tasks, history, setHistory }) {
   const { strictMode, timeFormat, audioChimes } = useSettings() 
@@ -10,11 +11,9 @@ export default function DailyAgenda({ tasks, history, setHistory }) {
   const currentMinutes = (currentHour * 60) + now.getMinutes()
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-  // Today Data
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   const currentDayName = days[now.getDay()]
 
-  // Yesterday Data
   const yesterday = new Date(now)
   yesterday.setDate(yesterday.getDate() - 1)
   const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`
@@ -22,26 +21,24 @@ export default function DailyAgenda({ tasks, history, setHistory }) {
 
   const safeTasks = Array.isArray(tasks) ? tasks : []
 
-  // Yesterday's tasks
   const yesterdayTasks = safeTasks
     .filter(t => t?.day === yesterdayDayName && parseInt(t?.hour || 0) > currentHour)
     .filter(t => t.isRoutine !== false || t.targetDate === yesterdayStr)
     .map(t => ({ ...t, dateStr: yesterdayStr, isYesterday: true }))
 
-  // Today's tasks
   const todayTasks = safeTasks
     .filter(t => t?.day === currentDayName)
     .filter(t => t.isRoutine !== false || t.targetDate === todayStr)
     .map(t => ({ ...t, dateStr: todayStr, isYesterday: false }))
 
-  // Combine and sort
   const rollingTasks = [...yesterdayTasks, ...todayTasks].sort((a, b) => {
     if (a.isYesterday && !b.isYesterday) return -1
     if (!a.isYesterday && b.isYesterday) return 1
     return (parseInt(a.hour) || 0) - (parseInt(b.hour) || 0)
   })
 
-  const toggleTask = (id, dateStr, isFutureLocked, isStrictLocked) => {
+  // THE UPDATED CLOUD-SYNCING TOGGLE
+  const toggleTask = async (id, dateStr, isFutureLocked, isStrictLocked) => {
     if (isFutureLocked || isStrictLocked) return
 
     const rawHistory = history[dateStr]
@@ -52,16 +49,22 @@ export default function DailyAgenda({ tasks, history, setHistory }) {
       newCompleted = completedIds.filter(taskId => taskId !== id)
     } else {
       newCompleted = [...completedIds, id]
-      
-      // Trigger the synthetic chime from utils if the setting is ON
-      if (audioChimes) {
-        playChime()
-      }
+      if (audioChimes) playChime()
     }
 
     const newHistory = { ...history, [dateStr]: newCompleted }
+    
+    // 1. Instant Local Update
     setHistory(newHistory)
     localStorage.setItem('atuw_history', JSON.stringify(newHistory))
+
+    // 2. Silent Cloud Backup
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      await supabase.from('user_settings').update({ 
+        daily_history: newHistory 
+      }).eq('user_id', session.user.id)
+    }
   }
 
   const formatHour = (h) => {
@@ -74,7 +77,6 @@ export default function DailyAgenda({ tasks, history, setHistory }) {
   return (
     <div className="bg-surface/50 backdrop-blur-xl border border-border rounded-2xl p-5 shadow-sm flex flex-col h-full max-h-[300px] md:max-h-full relative overflow-hidden">
       
-      {/* Strict Mode Glow Warning */}
       {strictMode && (
         <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full blur-3xl pointer-events-none -mt-10 -mr-10"></div>
       )}
@@ -108,15 +110,12 @@ export default function DailyAgenda({ tasks, history, setHistory }) {
             const taskStartMins = parseInt(task.hour) * 60
             const taskEndMins = taskStartMins + parseInt(task.duration || 60)
 
-            // 1. Time State
             const isFuture = !task.isYesterday && taskStartMins > currentMinutes
             const isPast = task.isYesterday || taskEndMins < currentMinutes
 
-            // 2. Lock State (Blocks the click)
             const isFutureLocked = isFuture
             const isStrictLocked = strictMode && isPast 
 
-            // 3. Visual States
             const isMissed = isStrictLocked && !isDone
             const isCompletedAndLocked = isStrictLocked && isDone
 
@@ -155,7 +154,6 @@ export default function DailyAgenda({ tasks, history, setHistory }) {
                       {task.category} • {formatHour(task.hour)}
                     </span>
                     
-                    {/* Status Tags */}
                     {isMissed && (
                       <span className="text-[9px] text-red-500/70 font-bold uppercase tracking-widest">Missed</span>
                     )}

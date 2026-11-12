@@ -1,38 +1,50 @@
 import { useState, useEffect } from 'react'
+import { supabase } from '../../lib/supabase'
 
 export default function HistoryModal({ isOpen, onClose, currentTasks, onLoadSnapshot }) {
-  // CRASH-PROOF: Safely load and validate history from local storage
   const [history, setHistory] = useState(() => {
     try {
-      const savedHistory = localStorage.getItem('atuw_schedule_history') // Changed key to isolate from heatmap history
+      const savedHistory = localStorage.getItem('atuw_schedule_history') 
       if (!savedHistory) return []
-      
       const parsedData = JSON.parse(savedHistory)
-      
-      // Strict check: if it's not an array, discard it to prevent .map() crashes
-      if (!Array.isArray(parsedData)) {
-        console.warn("Corrupted history data found. Resetting schedule history.")
-        return []
-      }
-      
+      if (!Array.isArray(parsedData)) return []
       return parsedData
     } catch (error) {
-      console.error("Failed to parse schedule history:", error)
-      return [] // Fallback to empty array on failure
+      return [] 
     }
   })
 
-  // Auto-save history changes to local storage
+  // 1. Initial Cloud Pull
+  useEffect(() => {
+    const fetchCloudHistory = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
+      const { data, error } = await supabase
+        .from('schedule_history')
+        .select('*')
+        .order('created_at', { ascending: false }) // Newest first
+
+      if (data && data.length > 0) {
+        const formattedHistory = data.map(row => ({
+          id: row.id,
+          ...row.snapshot_data // Unpacks the name, timestamp, and task array
+        }))
+        setHistory(formattedHistory)
+        localStorage.setItem('atuw_schedule_history', JSON.stringify(formattedHistory))
+      }
+    }
+    fetchCloudHistory()
+  }, [])
+
   useEffect(() => {
     localStorage.setItem('atuw_schedule_history', JSON.stringify(history))
   }, [history])
 
   if (!isOpen) return null
 
-  // Create a new snapshot of the current schedule
-  const handleSaveSnapshot = () => {
+  const handleSaveSnapshot = async () => {
     const safeTasks = Array.isArray(currentTasks) ? currentTasks : []
-    
     const newSnapshot = {
       id: Math.random().toString(36).substr(2, 9),
       timestamp: new Date().toLocaleString([], { 
@@ -40,13 +52,36 @@ export default function HistoryModal({ isOpen, onClose, currentTasks, onLoadSnap
         hour: '2-digit', minute: '2-digit' 
       }),
       name: `Snapshot ${history.length + 1}`,
-      tasks: [...safeTasks] // Deep copy of safe current tasks
+      tasks: [...safeTasks] 
     }
-    setHistory([newSnapshot, ...history]) // Add to top of list
+    
+    // 1. Local update
+    setHistory([newSnapshot, ...history]) 
+
+    // 2. Cloud update
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      await supabase.from('schedule_history').insert({
+        id: newSnapshot.id,
+        user_id: session.user.id,
+        snapshot_data: {
+          timestamp: newSnapshot.timestamp,
+          name: newSnapshot.name,
+          tasks: newSnapshot.tasks
+        }
+      })
+    }
   }
   
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
+    // 1. Local update
     setHistory(history.filter(h => h.id !== id))
+
+    // 2. Cloud update
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      await supabase.from('schedule_history').delete().eq('id', id)
+    }
   }
 
   return (
@@ -66,7 +101,6 @@ export default function HistoryModal({ isOpen, onClose, currentTasks, onLoadSnap
           </button>
         </div>
         
-        {/* Scrollable List of Snapshots */}
         <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar min-h-[200px]">
           {history.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-muted text-sm italic py-8">
