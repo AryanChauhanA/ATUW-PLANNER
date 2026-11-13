@@ -9,10 +9,18 @@ import ContributionGrid from '../components/dashboard/ContributionGrid'
 import NeuralCapture from '../components/dashboard/NeuralCapture'
 
 export default function Dashboard() {
-  const [tasks, setTasks] = useState([])
-  const [history, setHistory] = useState({})
-  const [user, setUser] = useState(null)
+  // FIX: Read local storage instantly on first load. No useEffect needed, completely killing the infinite loop.
+  const [tasks, setTasks] = useState(() => {
+    const rawTasks = localStorage.getItem('atuw_tasks')
+    return rawTasks ? JSON.parse(rawTasks) : []
+  })
   
+  const [history, setHistory] = useState(() => {
+    const rawHistory = localStorage.getItem('atuw_history')
+    return rawHistory ? JSON.parse(rawHistory) : {}
+  })
+
+  const [user, setUser] = useState(null)
   const [aiModalOpen, setAiModalOpen] = useState(false)
 
   // 1. Auth Listener & Cloud Data Hydration
@@ -43,26 +51,21 @@ export default function Dashboard() {
       if (session) fetchCloudData(session.user.id)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // FIX: Safely store the listener object without deep destructuring
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
       if (session) fetchCloudData(session.user.id)
     })
 
-    return () => subscription.unsubscribe()
+    // FIX: Check if the subscription actually exists before unsubscribing during page transitions
+    return () => {
+      if (authListener && authListener.subscription) {
+        authListener.subscription.unsubscribe()
+      }
+    }
   }, [])
 
-  // 2. Local Storage Fallback
-  useEffect(() => {
-    if (tasks.length === 0) {
-      const rawTasks = localStorage.getItem('atuw_tasks')
-      if (rawTasks) setTasks(JSON.parse(rawTasks))
-    }
-    if (Object.keys(history).length === 0) {
-      const rawHistory = localStorage.getItem('atuw_history')
-      if (rawHistory) setHistory(JSON.parse(rawHistory))
-    }
-  }, [tasks.length, history])
-
+  // FIX: Added redirectTo so local testing keeps you on localhost without overriding your live site
   const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -73,10 +76,6 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col h-full max-w-[1200px] mx-auto overflow-y-auto custom-scrollbar pb-24 space-y-4 md:space-y-6 relative pt-4">
       
-      {/* 
-        Passing user and login logic to the header. 
-        We will wire WelcomeHeader to hide its button when 'user' exists.
-      */}
       <WelcomeHeader 
         user={user} 
         onLogin={handleGoogleLogin} 
